@@ -1,0 +1,19 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>JS 分包对照实验</title>
+<style>body{font:15px system-ui;margin:20px;color:#203c30;background:#f4f7f5}button{padding:9px 16px;margin-right:12px}table{border-collapse:collapse;background:white;width:100%;margin:12px 0}th,td{padding:7px 12px;border:1px solid #d7e2da;text-align:right}th:first-child,td:first-child{text-align:left}iframe{width:100%;height:620px;border:1px solid #d7e2da}pre{white-space:pre-wrap}#summary{font-weight:600}</style>
+<h1>JS 分包对照实验</h1><p>A 为当前线上构建，B 为小分包合并候选。两者使用相同 OSS 和业务接口，正式入口未改动。冷样本使用独立资源 URL；暖样本复用同一 URL。只测读取，不发送 AI 请求。</p>
+<button id="start">开始 3 组交替对照</button><button id="export">下载计时 JSON</button><span id="status">尚未开始</span><p id="summary"></p>
+<table><thead><tr><th>样本</th><th>JS 数</th><th>JS/CSS 数</th><th>静态资源区间 ms</th><th>文档列表可用 ms</th><th>脚本错误</th></tr></thead><tbody id="rows"></tbody></table><iframe id="app" title="实验中的知识首页"></iframe><pre id="json"></pre>
+<script>
+// 所有计时只保留在当前页面和用户主动下载的本地 JSON 中。
+const rows=[],queue=[],frame=document.getElementById('app');
+let active=null,deadline=null;
+/** 按轮次交替顺序，减少固定先后顺序的连接和网络偏差。 */
+function prepare(){for(let round=1;round<=3;round++){const pair=round%2?['a','b']:['b','a'];for(const variant of pair)queue.push({variant,round,cache:'cold'});for(const variant of [...pair].reverse())queue.push({variant,round,cache:'warm'});}}
+/** 顺序加载同源隔离页面，登录状态沿用工作台但不会复制任何认证材料。 */
+function next(){active=queue.shift();if(!active){document.getElementById('status').textContent='全部完成';document.getElementById('start').disabled=false;return;}document.getElementById('status').textContent='正在测量 '+active.variant.toUpperCase()+' / 第 '+active.round+' 组 / '+active.cache;frame.src='chunk-ab-20261024/'+active.variant+'-'+active.round+'.html?sample='+active.cache+'#/knowledge/dashboard';deadline=setTimeout(()=>receive({error:'measurement-timeout'}),30000);}
+/** 汇总计时，结果未包含认证信息、文档内容或接口响应。 */
+function receive(data){clearTimeout(deadline);rows.push({...active,...data});const row=document.createElement('tr');for(const value of [active.variant.toUpperCase()+' '+active.round+' '+active.cache,data.jsCount??'失败',data.staticCount??'-',data.staticSpanMs?.toFixed(1)??data.error,data.readyMs?.toFixed(1)??'-',data.errors??'-']){const cell=document.createElement('td');cell.textContent=value;row.append(cell);}document.getElementById('rows').append(row);document.getElementById('json').textContent=JSON.stringify(rows.map(({resources,...summary})=>summary),null,2);setTimeout(next,350);}
+addEventListener('message',event=>{if(event.origin!==location.origin||event.source!==frame.contentWindow||event.data?.kind!=='mall-chunk-ab'||!active)return;receive(event.data);});
+document.getElementById('start').onclick=()=>{if(active)return;rows.length=0;queue.length=0;document.getElementById('rows').replaceChildren();document.getElementById('start').disabled=true;prepare();next();};
+document.getElementById('export').onclick=()=>{const blob=new Blob([JSON.stringify({created:new Date().toISOString(),userAgent:navigator.userAgent,rows},null,2)],{type:'application/json'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='mall-chunk-ab-browser.json';link.click();URL.revokeObjectURL(link.href);};
+</script></html>

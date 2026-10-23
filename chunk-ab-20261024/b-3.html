@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+<script>/* 实验页只读计时；不读取认证信息、不发送 AI 请求或修改业务记录。 */
+(() => {
+  // 轮次和方案由隔离 HTML 注入，与资源目录一一对应。
+  const variant='b',round=Number('3'),prefix='https://e-commerce-data.oss-cn-shanghai.aliyuncs.com/compass/web/mall-web/experiments/chunk-ab-20261024-v1/b-3/';
+  // 收集脚本加载错误的类型，不记录可能含业务信息的错误正文。
+  const errors=[];
+  addEventListener('error',event=>errors.push({type:event.target?.tagName||'runtime'}),true);
+  // 用已有文档列表渲染作为页面数据可用信号，不把 DOMContentLoaded 当成页面完成。
+  let ready=0,complete=false;
+  /** 完成后向同源父页面报告公开计时，不报告 DOM 内容、请求头或接口响应。 */
+  function inspect(){
+    const root=document.getElementById('root');
+    if(!ready&&root?.textContent.includes('我的文档')&&root.querySelector('tbody tr[data-row-key]'))ready=performance.now();
+    const entries=performance.getEntriesByType('resource').filter(item=>item.name.startsWith(prefix)&&/\.(js|css)(\?|$)/.test(item.name));
+    const last=Math.max(0,...entries.map(item=>item.responseEnd));
+    if(ready&&entries.length&&performance.now()-last>600&&!complete){
+      complete=true;
+      const first=Math.min(...entries.map(item=>item.startTime));
+      // 静态资源区间与含 HTML/API 的数据可用时间单独统计。
+      const result={kind:'mall-chunk-ab',variant,round,readyMs:ready,staticFirstMs:first,staticLastMs:last,staticSpanMs:last-first,staticCount:entries.length,jsCount:entries.filter(item=>/\.js(\?|$)/.test(item.name)).length,errors:errors.length,resources:entries.map(item=>({file:item.name.slice(prefix.length),startMs:item.startTime,durationMs:item.duration,endMs:item.responseEnd}))};
+      parent.postMessage(result,location.origin);
+      clearInterval(timer);
+    }
+  }
+  // 定时检查仅在实验 HTML 中运行，不进入实际应用源码。
+  const timer=setInterval(inspect,100);
+  setTimeout(()=>{if(!complete){complete=true;parent.postMessage({kind:'mall-chunk-ab',variant,round,error:'page-not-ready-after-25s',errors:errors.length},location.origin);clearInterval(timer);}},25000);
+})();
+</script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f7fb" />
+    <title>抖音商品实时榜</title>
+    <script type="module" crossorigin src="https://e-commerce-data.oss-cn-shanghai.aliyuncs.com/compass/web/mall-web/experiments/chunk-ab-20261024-v1/b-3/assets/index-DnCmRZm6.js"></script>
+    <link rel="modulepreload" crossorigin href="https://e-commerce-data.oss-cn-shanghai.aliyuncs.com/compass/web/mall-web/experiments/chunk-ab-20261024-v1/b-3/assets/collapse-T_82wlJB.js">
+    <link rel="modulepreload" crossorigin href="https://e-commerce-data.oss-cn-shanghai.aliyuncs.com/compass/web/mall-web/experiments/chunk-ab-20261024-v1/b-3/assets/react-runtime-BMUnaXfJ.js">
+    <link rel="modulepreload" crossorigin href="https://e-commerce-data.oss-cn-shanghai.aliyuncs.com/compass/web/mall-web/experiments/chunk-ab-20261024-v1/b-3/assets/router-runtime-CLEf-1_r.js">
+    <link rel="stylesheet" crossorigin href="https://e-commerce-data.oss-cn-shanghai.aliyuncs.com/compass/web/mall-web/experiments/chunk-ab-20261024-v1/b-3/assets/index-8DeMTx8-.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
