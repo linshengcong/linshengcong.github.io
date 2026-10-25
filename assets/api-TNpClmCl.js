@@ -1,0 +1,1 @@
+import{r as n}from"./index-C0dr53A3.js";var o=(r=>(r.正面="positive",r.负面="negative",r))(o||{}),u=(r=>(r[r.普通=1]="普通",r[r.重要=2]="重要",r))(u||{});function i(r){return r.polarity?`${r.polarity==="positive"?"+":"−"}${r.weight}`:"待完善"}function e(r,s,t){return n(r,s,{method:"POST",body:JSON.stringify(t)})}export{o as S,u as a,i as t,e as w};
